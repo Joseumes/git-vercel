@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Proyecto de inicio de sesión con Supabase">
+  <title>Login | Mi Proyecto</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js" defer></script>
+
+</head>
+<body>
+  <main class="page">
+    <section class="login-card">
+      <div class="logo">L</div>
+
+      <p class="eyebrow">MI PROYECTO WEB</p>
+      <h1 id="form-title">Bienvenido</h1>
+      <p class="subtitle" id="form-description">
+        Ingresa tus datos para continuar.
+      </p>
+
+      <form id="auth-form">
+        <div class="field" id="name-field" hidden>
+          <label for="full-name">Nombre completo</label>
+          <input
+            type="text"
+            id="full-name"
+            name="full-name"
+            placeholder="Tu nombre"
+            autocomplete="name"
+            maxlength="100"
+          >
+        </div>
+
+        <div class="field">
+          <label for="email">Correo electrónico</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="correo@ejemplo.com"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <div class="password-wrapper">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Mínimo 8 caracteres"
+              autocomplete="current-password"
+              minlength="8"
+              required
+            >
+            <button
+              type="button"
+              class="show-password"
+              id="toggle-password"
+              aria-label="Mostrar contraseña"
+            >Mostrar</button>
+          </div>
+        </div>
+
+        <p id="forgot-wrapper" class="forgot-wrapper">
+          <button type="button" id="forgot-password" class="text-button">
+            ¿Olvidaste tu contraseña?
+          </button>
+        </p>
+
+        <button type="submit" id="submit-button" class="primary-button">
+          Iniciar sesión
+        </button>
+      </form>
+
+      <div id="message" class="message" role="status" aria-live="polite"></div>
+
+      <div id="dashboard" hidden>
+        <div class="welcome-icon">✓</div>
+        <h2>Sesión iniciada</h2>
+        <p id="user-email" class="subtitle"></p>
+        <p id="user-name" class="user-name"></p>
+        <button type="button" id="logout-button" class="primary-button">
+          Cerrar sesión
+        </button>
+      </div>
+
+      <p class="switch-text" id="switch-wrapper">
+        ¿No tienes una cuenta?
+        <button type="button" id="switch-mode" class="text-button">
+          Regístrate
+        </button>
+      </p>
+
+      <p class="footer-text">Proyecto educativo · HTML, CSS y JavaScript</p>
+    </section>
+  </main>
+</body>
+</html>
