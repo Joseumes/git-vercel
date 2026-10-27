@@ -1,10 +1,6 @@
+const API_BASE_URL = "http://localhost:3001";
 
-const SUPABASE_URL = "https://ucqmzpjtkdthmdvstgbi.supabase.co";
+// Cuando publiques la API en Render, cambia esta URL por la real:
+// const API_BASE_URL = "https://tu-api.onrender.com";
 
-const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_HTho5-mUMH_7yYHnP5Sfrw_DFSEmotb";
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+window.API_BASE_URL = API_BASE_URL;

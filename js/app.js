@@ -1,4 +1,3 @@
-
 const authForm = document.getElementById("auth-form");
 const formTitle = document.getElementById("form-title");
 const formDescription = document.getElementById("form-description");
@@ -81,7 +80,7 @@ function renderSession(session) {
   if (user) {
     userEmail.textContent = user.email || "";
     userName.textContent =
-      user.user_metadata?.full_name || "Usuario registrado";
+      user.user_metadata?.full_name || user.user_metadata?.fullName || "Usuario registrado";
 
     clearMessage();
   } else {
@@ -106,6 +105,42 @@ switchModeButton.addEventListener("click", () => {
   if (isBusy) return;
   setMode(!isRegisterMode);
 });
+
+function saveSessionToken(session) {
+  const token = session?.access_token || session?.session?.access_token || session?.session?.access_token || null;
+
+  if (token) {
+    localStorage.setItem("supabase_access_token", token);
+    return;
+  }
+
+  localStorage.removeItem("supabase_access_token");
+}
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(`${window.API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    },
+    ...options
+  });
+
+  const text = await response.text();
+  let payload = {};
+
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch (error) {
+    payload = { message: text || "Error inesperado." };
+  }
+
+  if (!response.ok) {
+    throw new Error(payload.message || "Error en la solicitud." );
+  }
+
+  return payload;
+}
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -139,44 +174,28 @@ authForm.addEventListener("submit", async (event) => {
   setBusy(true);
 
   try {
-    if (isRegisterMode) {
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName
-          },
-          emailRedirectTo: window.location.origin
-        }
-      });
+    const endpoint = isRegisterMode ? "/api/auth/register" : "/api/auth/login";
+    const payload = isRegisterMode
+      ? { email, password, full_name: fullName }
+      : { email, password };
 
-      if (error) throw error;
+    const result = await apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
 
-      if (data.session) {
-        renderSession(data.session);
-        showMessage("Cuenta creada correctamente.", "success");
-      } else {
-        showMessage(
-          "Registro recibido. Revisa tu correo para confirmar la cuenta antes de iniciar sesión.",
-          "success"
-        );
-
-        authForm.reset();
-        passwordInput.type = "password";
-        togglePassword.textContent = "Mostrar";
-      }
+    if (result.session) {
+      saveSessionToken(result.session);
+      renderSession(result);
+      showMessage(
+        isRegisterMode ? "Cuenta creada correctamente." : "Inicio de sesión correcto.",
+        "success"
+      );
     } else {
-      const { data, error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (error) throw error;
-
-      renderSession(data.session);
-      showMessage("Inicio de sesión correcto.", "success");
+      showMessage(result.message || "Operación completada.", "success");
+      authForm.reset();
+      passwordInput.type = "password";
+      togglePassword.textContent = "Mostrar";
     }
   } catch (error) {
     console.error("Error de autenticación:", error);
@@ -209,17 +228,12 @@ forgotPassword.addEventListener("click", async () => {
   setBusy(true);
 
   try {
-    const { error } =
-      await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
-      });
+    const result = await apiRequest("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email })
+    });
 
-    if (error) throw error;
-
-    showMessage(
-      "Si el correo corresponde a una cuenta, recibirás instrucciones para recuperar el acceso.",
-      "success"
-    );
+    showMessage(result.message || "Revisa tu correo para continuar.", "success");
   } catch (error) {
     console.error("Error de recuperación:", error);
     showMessage(
@@ -237,10 +251,18 @@ logoutButton.addEventListener("click", async () => {
   setBusy(true);
 
   try {
-    const { error } = await supabaseClient.auth.signOut();
+    const token = localStorage.getItem("supabase_access_token");
 
-    if (error) throw error;
+    if (token) {
+      await apiRequest("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    }
 
+    localStorage.removeItem("supabase_access_token");
     renderSession(null);
     authForm.reset();
     setMode(false);
@@ -253,24 +275,36 @@ logoutButton.addEventListener("click", async () => {
   }
 });
 
-// Recuperar la sesión cuando se abre o recarga la página.
 (async function initializeAuth() {
   try {
-    const { data, error } = await supabaseClient.auth.getSession();
+    const token = localStorage.getItem("supabase_access_token");
 
-    if (error) throw error;
+    if (!token) {
+      renderSession(null);
+      return;
+    }
 
-    renderSession(data.session);
+    const result = await apiRequest("/api/auth/session", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    renderSession(result);
   } catch (error) {
     console.error("Error al comprobar la sesión:", error);
+    localStorage.removeItem("supabase_access_token");
+    renderSession(null);
     showMessage(
-      "No se pudo conectar con Supabase. Revisa la configuración.",
+      "No se pudo conectar con la API. Revisa la configuración.",
       "error"
     );
   }
 })();
 
-// Actualizar la interfaz cuando cambia la sesión.
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  renderSession(session);
+window.addEventListener("storage", (event) => {
+  if (event.key === "supabase_access_token" && !event.newValue) {
+    renderSession(null);
+  }
 });
